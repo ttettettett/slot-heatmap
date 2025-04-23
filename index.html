@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>差枚ヒートマップ（スマホ縦用・正方形セル）</title>
+
+<style>
+:root {
+  --cell: min(10vw, 48px); /* セルサイズ（横幅基準） */
+  --fnum: clamp(10px, 0.28 * var(--cell), 14px);
+  --ftitle: clamp(8px, 0.20 * var(--cell), 11px);
+  --fdiff: clamp(10px, 0.28 * var(--cell), 14px);
+
+  --cP0: #ffe6e6; --cP1: #ffb3b3; --cP2: #ff8080;
+  --cP3: #ff4d4d; --cP4: #ff1a1a; --cP5: #e60000;
+}
+body { margin: 0; font-family: sans-serif; }
+header { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+input[type=file] { width: 100%; min-height: 44px; font-size: 16px; }
+
+#grid {
+  display: grid;
+  grid-auto-rows: var(--cell);
+  grid-auto-columns: var(--cell);
+  overflow-x: auto;
+  touch-action: pan-x pan-y;
+  padding-bottom: 64px;
+}
+.cell {
+  width: var(--cell); height: var(--cell);
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  place-items: center;
+  text-align: center;
+  overflow: hidden;
+  user-select: none;
+}
+.cell strong { font-size: var(--fnum); }
+.cell .title { font-size: var(--ftitle); color: #555; line-height: 1.05; }
+.cell .diff { font-size: var(--fdiff); }
+
+.P0 { background: var(--cP0); } .P1 { background: var(--cP1); }
+.P2 { background: var(--cP2); } .P3 { background: var(--cP3); }
+.P4 { background: var(--cP4); } .P5 { background: var(--cP5); }
+
+footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; gap: 8px; padding: 8px;
+  background: #fff; box-shadow: 0 -2px 4px rgba(0,0,0,.08);
+}
+footer button { flex: 1; min-height: 44px; font-size: 16px; }
+
+#toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #333; color: #fff; padding: 8px 12px; border-radius: 4px;
+  font-size: 14px; opacity: 0; pointer-events: none; transition: .3s;
+}
+#toast.show { opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<header>
+  <input id="mapFile" type="file" accept=".csv,text/csv">
+  <input id="samaFile" type="file" accept=".csv,text/csv">
+</header>
+
+<div id="grid"></div>
+
+<footer>
+  <button id="saveBtn" disabled>PNG 保存</button>
+  <button id="resetBtn" disabled>リセット</button>
+</footer>
+
+<div id="toast"></div>
+
+<!-- CDNライブラリ -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<script>
+const mapInput = document.getElementById('mapFile');
+const samaInput = document.getElementById('samaFile');
+const gridEl = document.getElementById('grid');
+const saveBtn = document.getElementById('saveBtn');
+const resetBtn = document.getElementById('resetBtn');
+const toast = document.getElementById('toast');
+
+let mapData = null;
+let samaDict = null;
+
+mapInput.addEventListener('change', e => parseMapCSV(e.target.files?.[0]));
+samaInput.addEventListener('change', e => parseSamaCSV(e.target.files?.[0]));
+saveBtn.addEventListener('click', savePNG);
+resetBtn.addEventListener('click', resetAll);
+
+const cleanNum = s => Number(String(s ?? '').replace(/[^\d\-]/g, '') || 0);
+function detectDelimiter(sample){
+  if(sample.includes('\t')) return '\t';
+  if(sample.split('\n')[0].includes(',')) return ',';
+  return Papa.RECORD_SEP;
+}
+
+function parseMapCSV(file){
+  if (!file) return;
+  Papa.parse(file, {
+    complete: res => {
+      const raw = res.data.filter(r => r.some(c => c !== ''));
+      const maxLen = Math.max(...raw.map(r => r.length));
+      mapData = raw.map(r => {
+        const row = [...r];
+        while (row.length < maxLen) row.push('');
+        return row;
+      });
+      buildIfReady();
+    }
+  });
+}
+
+function parseSamaCSV(file){
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const delimiter = detectDelimiter(text);
+    Papa.parse(text, {
+      delimiter,
+      complete: res => {
+        samaDict = {};
+        res.data.forEach(r => {
+          if (r.length < 4) return;
+          const num = String(r[1]).trim();
+          const diff = cleanNum(r[3]);
+          if (!num) return;
+          samaDict[num] = { title: String(r[0]).trim(), diff };
+        });
+        buildIfReady();
+      }
+    });
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function buildIfReady(){
+  if (!mapData || !samaDict) return;
+  gridEl.innerHTML = '';
+  const cols = mapData[0]?.length || 0;
+  gridEl.style.gridTemplateColumns = `repeat(${cols}, var(--cell))`;
+
+  const found = new Set();
+  mapData.forEach(row => {
+    row.forEach(cell => {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      if (cell) {
+        const key = String(cell).trim();
+        const info = samaDict[key];
+        if (info) {
+          found.add(key);
+          const cls = diffToClass(info.diff);
+          if (cls) div.classList.add(cls);
+          const signed = info.diff > 0 ? `+${info.diff}` : info.diff;
+          const short = info.title.length > 10 ? info.title.slice(0, 10) + '…' : info.title;
+          div.innerHTML = `
+            <strong>${key}</strong>
+            <span class="title">${short}</span>
+            <span class="diff">${signed}</span>`;
+        } else {
+          div.textContent = key;
+        }
+      }
+      gridEl.appendChild(div);
+    });
+  });
+
+  const missing = Object.keys(samaDict).filter(k => !found.has(k));
+  if (missing.length) showToast(`配置にない台番号: ${missing.slice(0, 5).join(',')}${missing.length > 5 ? '…' : ''}`);
+
+  saveBtn.disabled = resetBtn.disabled = false;
+}
+
+function diffToClass(d){
+  return d > 0 ? 'P' + Math.min(Math.floor((d - 1) / 1000), 5) : '';
+}
+
+function savePNG(){
+  html2canvas(gridEl, { backgroundColor: null, scale: window.devicePixelRatio * 1.2 }).then(canvas => {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'samamap.png';
+      if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+        const tab = window.open(url, '_blank');
+        if (!tab) showToast('画像がブロックされました。ポップアップを許可してください');
+      } else {
+        a.click(); URL.revokeObjectURL(url);
+      }
+    });
+  });
+}
+
+function resetAll(){
+  mapData = samaDict = null;
+  mapInput.value = samaInput.value = '';
+  gridEl.innerHTML = '';
+  saveBtn.disabled = resetBtn.disabled = true;
+}
+
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(showToast.tid);
+  showToast.tid = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
