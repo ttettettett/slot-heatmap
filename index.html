@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>差枚ヒートマップ（正方形セル対応・貼り付け版）</title>
+<title>差枚ヒートマップ（プリセット対応）</title>
 <style>
 :root {
   --cell: min(11vw, 44px);
@@ -28,7 +28,6 @@ textarea {
   -webkit-text-size-adjust: 100%;
 }
 button.parse { margin-top: 8px; height: 44px; font-size: 16px; }
-
 #grid {
   display: grid;
   grid-auto-rows: var(--cell);
@@ -51,11 +50,9 @@ button.parse { margin-top: 8px; height: 44px; font-size: 16px; }
 .cell strong { font-size: var(--fnum); }
 .cell .title { font-size: var(--ftitle); color: #555; line-height: 1.05; }
 .cell .diff { font-size: var(--fdiff); }
-
 .P0 { background: var(--cP0); } .P1 { background: var(--cP1); }
 .P2 { background: var(--cP2); } .P3 { background: var(--cP3); }
 .P4 { background: var(--cP4); } .P5 { background: var(--cP5); }
-
 footer {
   position: fixed; bottom: 0; left: 0; right: 0;
   display: flex; gap: 8px; padding: 8px;
@@ -63,7 +60,6 @@ footer {
   z-index: 1000;
 }
 footer button { flex: 1; min-height: 44px; font-size: 16px; }
-
 #toast {
   position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
   background: #333; color: #fff; padding: 8px 12px; border-radius: 4px;
@@ -75,6 +71,11 @@ footer button { flex: 1; min-height: 44px; font-size: 16px; }
 </head>
 <body>
 <header>
+  <label>フロアマッププリセット</label>
+  <select id="presetSelect" onchange="loadPresetMap(this.value)">
+    <option value="">-- ホールを選択 --</option>
+    <option value="kamata">マルハン蒲田</option>
+  </select>
   <label>フロアマップCSV（貼り付け）</label>
   <textarea id="mapText"></textarea>
   <label>差枚CSV（貼り付け）</label>
@@ -94,6 +95,14 @@ const gridEl = document.getElementById('grid');
 const saveBtn = document.getElementById('saveBtn');
 const resetBtn = document.getElementById('resetBtn');
 const toast = document.getElementById('toast');
+const presets = {
+  kamata: `2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,...(略・省略可能な長文)`
+};
+function loadPresetMap(key) {
+  if (presets[key]) {
+    document.getElementById('mapText').value = presets[key];
+  }
+}
 
 let mapData = null;
 let samaDict = null;
