@@ -72,7 +72,7 @@ footer button { flex: 1; min-height: 44px; font-size: 16px; }
 </header>
 <div id="grid"></div>
 <footer>
-  <button id="saveBtn" onclick="savePNG()" disabled>PNG 保存</button>
+  <button id="saveBtn" onclick="savePNG()" disabled>保存</button>
   <button id="resetBtn" onclick="resetAll()" disabled>リセット</button>
 </footer>
 <div id="toast"></div>
@@ -189,7 +189,7 @@ function savePNG() {
   wrapper.appendChild(clone);
   document.body.appendChild(wrapper);
 
-  html2canvas(wrapper, { backgroundColor: null, scale: window.devicePixelRatio * 1.2 }).then(canvas => {
+  html2canvas(wrapper, { scale: window.devicePixelRatio * 1.2 }).then(canvas => {
     canvas.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
