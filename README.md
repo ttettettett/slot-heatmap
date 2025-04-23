@@ -20,8 +20,7 @@ CSVファイルをアップロードするだけで、ホールのフロアマ�
 ---
 
 ## デモ
-
-https://＜your-github-name＞.github.io/sama-map/
+https://ttettettett.github.io/slot-heatmap/
 
 （GitHub Pages にデプロイするだけですぐ使えます）
 
