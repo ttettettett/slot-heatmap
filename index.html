@@ -178,8 +178,18 @@ function diffToClass(d){
   return d > 0 ? 'P' + Math.min(Math.floor((d - 1) / 1000), 5) : '';
 }
 
-function savePNG(){
-  html2canvas(gridEl, { backgroundColor: null, scale: window.devicePixelRatio * 1.2 }).then(canvas => {
+function savePNG() {
+  const clone = gridEl.cloneNode(true);
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'absolute';
+  wrapper.style.left = '0';
+  wrapper.style.top = '0';
+  wrapper.style.padding = '16px';
+  wrapper.style.background = '#fff';
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
+
+  html2canvas(wrapper, { backgroundColor: null, scale: window.devicePixelRatio * 1.2 }).then(canvas => {
     canvas.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -189,6 +199,7 @@ function savePNG(){
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      document.body.removeChild(wrapper);
     });
   });
 }
