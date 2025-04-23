@@ -7,9 +7,9 @@
 <style>
 :root {
   --cell: min(10vw, 48px);
-  --fnum: clamp(10px, 0.28 * var(--cell), 14px);
-  --ftitle: clamp(8px, 0.20 * var(--cell), 11px);
-  --fdiff: clamp(10px, 0.28 * var(--cell), 14px);
+  --fnum: clamp(8px, 0.22 * var(--cell), 12px);
+  --ftitle: clamp(7px, 0.18 * var(--cell), 10px);
+  --fdiff: clamp(8px, 0.22 * var(--cell), 12px);
   --cP0: #ffe6e6; --cP1: #ffb3b3; --cP2: #ff8080;
   --cP3: #ff4d4d; --cP4: #ff1a1a; --cP5: #e60000;
 }
@@ -145,7 +145,7 @@ function buildIfReady(){
   mapData.forEach(row => {
     row.forEach(cell => {
       const div = document.createElement('div');
-      div.className = 'cell';
+      div.className = cell ? 'cell' : '';
 
       if (cell) {
         const key = String(cell).trim();
@@ -155,7 +155,7 @@ function buildIfReady(){
           const cls = diffToClass(info.diff);
           if (cls) div.classList.add(cls);
           const signed = info.diff > 0 ? `+${info.diff}` : String(info.diff);
-          const short = info.title.length > 10 ? info.title.slice(0, 10) + '…' : info.title;
+          const short = info.title.length > 8 ? info.title.slice(0, 8) + '…' : info.title;
           div.innerHTML = `
             <strong>${key}</strong>
             <span class="title">${short}</span>
@@ -164,7 +164,8 @@ function buildIfReady(){
           div.textContent = key;
         }
       }
-      gridEl.appendChild(div);
+      if (cell) gridEl.appendChild(div);
+      else gridEl.appendChild(Object.assign(document.createElement('div'), { style: 'width: var(--cell); height: var(--cell);' }));
     });
   });
 
