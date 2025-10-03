@@ -74,7 +74,8 @@ footer button { flex: 1; min-height: 44px; font-size: 16px; }
   <label>フロアマッププリセット</label>
   <select id="presetSelect" onchange="loadPresetMap(this.value)">
     <option value="">-- プリセットを選択 --</option>
-    <option value="kamata">マルハン蒲田</option>
+    <option value="maruhan1">マルハン蒲田</option>
+    <option value="hirokihigashi">ヒロキ蒲田東口</option>
   </select>
   <label>フロアマップCSV（貼り付け）</label>
   <textarea id="mapText"></textarea>
@@ -99,7 +100,8 @@ const toast = document.getElementById('toast');
 async function loadPresetMap(key) {
   if (!key) return;
   const urlMap = {
-    kamata: 'presets/maruhankamata.csv',
+    maruhan1: 'presets/maruhan1.csv',
+    hirokihigashi: 'presets/hirokihigashi.csv',
   };
   if (!urlMap[key]) return;
   try {
